@@ -8,7 +8,7 @@ const contentSchema = new mongoose.Schema({
         default: 'home_page'
     },
     heroSection: {
-        title: { type: String, default: 'Lumina' },
+        title: { type: String, default: 'Avenly by Huma' },
         subtitle: { type: String, default: 'Artifacts of Refinement' }
     },
     collectiveIndex: {
@@ -18,7 +18,7 @@ const contentSchema = new mongoose.Schema({
         image: { type: String, default: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000' }
     },
     siteSettings: {
-        siteName: { type: String, default: 'Lumina.' },
+        siteName: { type: String, default: 'Avenly by Huma.' },
         seoKeywords: { type: String, default: 'luxury, ecommerce, artifacts' },
         logoUrl: { type: String, default: '' }
     },
@@ -41,7 +41,7 @@ const contentSchema = new mongoose.Schema({
             github: { type: String, default: '#' }
         },
         newsletterText: { type: String, default: 'Subscribe to get special offers, free giveaways, and once-in-a-lifetime deals.' },
-        copyrightText: { type: String, default: '© 2024 Lumina E-Commerce. All rights reserved.' }
+        copyrightText: { type: String, default: '© 2024 Avenly by Huma E-Commerce. All rights reserved.' }
     },
     updatedAt: {
         type: Date,

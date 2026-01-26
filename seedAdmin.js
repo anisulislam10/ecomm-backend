@@ -14,7 +14,7 @@ const createAdmin = async () => {
         // Admin Data
         const adminData = {
             name: 'System Admin',
-            email: 'admin@lumina.com',
+            email: 'admin@Avenly by Huma.com',
             password: 'adminpassword123', // Change this!
             phone: '1234567890',
             role: 'admin',
