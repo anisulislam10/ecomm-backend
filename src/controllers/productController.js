@@ -196,6 +196,12 @@ exports.createCategory = asyncHandler(async (req, res, next) => {
     if (req.body.parentCategory === '') {
         req.body.parentCategory = null;
     }
+
+    if (req.file) {
+        const result = await require('../services/fileUploadService').uploadSingleImage(req.file, 'categories');
+        req.body.image = result.url;
+    }
+
     const category = await Category.create(req.body);
     res.status(201).json(new ApiResponse(201, { category }, 'Category created'));
 });
@@ -209,6 +215,12 @@ exports.updateCategory = asyncHandler(async (req, res, next) => {
     if (req.body.parentCategory === '') {
         req.body.parentCategory = null;
     }
+
+    if (req.file) {
+        const result = await require('../services/fileUploadService').uploadSingleImage(req.file, 'categories');
+        req.body.image = result.url;
+    }
+
     const category = await Category.findByIdAndUpdate(req.params.id, req.body, {
         new: true,
         runValidators: true

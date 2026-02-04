@@ -7,16 +7,33 @@ const contentSchema = new mongoose.Schema({
         unique: true,
         default: 'home_page'
     },
-    heroSection: {
-        title: { type: String, default: 'Avenly by Huma' },
-        subtitle: { type: String, default: 'Artifacts of Refinement' }
+    // Header Configuration
+    header: {
+        topBarText: { type: String, default: '100% Organic & Fairtrade | Free Shipping on Orders Over $100' },
+        announcementEnabled: { type: Boolean, default: true }
     },
-    collectiveIndex: {
-        title: { type: String, default: 'Artifacts of Refinement' },
-        description: { type: String, default: 'Explore our curated ledger of professional-grade essentials. Each piece is verified for origin, quality, and aesthetic longevity.' },
-        buttonText: { type: String, default: 'Browse Collective' },
-        image: { type: String, default: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=2000' }
+    // Hero Section (New)
+    hero: {
+        title: { type: String, default: "Sleep in Nature's" },
+        highlight: { type: String, default: "Embrace" },
+        subtitle: { type: String, default: "The New Collection" },
+        buttonText: { type: String, default: "Shop Collection" },
+        image: { type: String, default: "https://images.unsplash.com/photo-1595521624992-48a59d495e6d?q=80&w=2487&auto=format&fit=crop" },
+        link: { type: String, default: "/products" }
     },
+    // Impact Section
+    impact: {
+        title: { type: String, default: "Change the World" },
+        highlight: { type: String, default: "While You Sleep" },
+        description: { type: String, default: "We believe that luxury shouldn't cost the earth. That's why every product is crafted from 100% organic, Fairtrade certified materials." },
+        image: { type: String, default: "https://images.unsplash.com/photo-1616486338812-3dadae4b4f9d?q=80&w=2000" }
+    },
+    // USPs
+    usps: [{
+        icon: { type: String, default: 'leaf' },
+        text: { type: String }
+    }],
+    // Legacy fields preserved for safety, or we can reuse
     siteSettings: {
         siteName: { type: String, default: 'Avenly by Huma.' },
         seoKeywords: { type: String, default: 'luxury, ecommerce, artifacts' },

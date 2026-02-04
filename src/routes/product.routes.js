@@ -48,8 +48,8 @@ router.put(
 router.delete('/:id', protect, authorize('admin'), productController.deleteProduct);
 
 // Category Admin routes
-router.post('/categories', protect, authorize('admin'), productController.createCategory);
-router.put('/categories/:id', protect, authorize('admin'), productController.updateCategory);
+router.post('/categories', protect, authorize('admin'), upload.single('image'), productController.createCategory);
+router.put('/categories/:id', protect, authorize('admin'), upload.single('image'), productController.updateCategory);
 router.delete('/categories/:id', protect, authorize('admin'), productController.deleteCategory);
 
 module.exports = router;

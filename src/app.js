@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const errorHandler = require('./middleware/errorHandler');
 const ApiError = require('./utils/ApiError');
 
@@ -24,9 +25,10 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// Body parser, reading data from body into req.body
+// Body parser
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(cookieParser());
 
 // Implement CORS
 const allowedOrigins = [
@@ -66,6 +68,7 @@ const contentRoutes = require('./routes/content.routes');
 const adminRoutes = require('./routes/admin.routes');
 const cartRoutes = require('./routes/cart.routes');
 const adRoutes = require('./routes/ad.routes');
+const testimonialRoutes = require('./routes/testimonial.routes');
 
 // Routes
 console.log('Mounting API Routes...');
@@ -78,6 +81,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/ads', adRoutes);
+app.use('/api/testimonials', testimonialRoutes);
 
 
 // Handle unhandled routes

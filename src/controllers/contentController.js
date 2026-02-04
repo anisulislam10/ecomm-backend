@@ -33,8 +33,7 @@ exports.updateContent = asyncHandler(async (req, res) => {
         content = new Content({ identifier });
     }
 
-    // deep merge or specific update logic
-    // Helper to parse JSON from FormData
+    // Helper to safety parsing JSON
     const parseJSON = (field) => {
         if (typeof field === 'string') {
             try { return JSON.parse(field); } catch (e) { return field; }
@@ -42,6 +41,39 @@ exports.updateContent = asyncHandler(async (req, res) => {
         return field;
     };
 
+    // --- Dynamic Field Handling ---
+    // Handle Header
+    if (req.body.header) {
+        const headerData = parseJSON(req.body.header);
+        content.header = { ...content.header, ...headerData };
+    }
+
+    // Handle Hero
+    // Note: If sent as individually appended "hero[title]" fields, standard parsing might leave them as body keys or nested object depending on config.
+    // We assume extended parsing or we handle `req.body.hero` if it's an object.
+    if (req.body.hero) {
+        // If it's a string (JSON) or object
+        const heroData = parseJSON(req.body.hero);
+        // If it's an object, merge. 
+        if (typeof heroData === 'object') {
+            content.hero = { ...content.hero, ...heroData };
+        }
+    }
+
+    // Handle Impact
+    if (req.body.impact) {
+        const impactData = parseJSON(req.body.impact);
+        if (typeof impactData === 'object') {
+            content.impact = { ...content.impact, ...impactData };
+        }
+    }
+
+    // Handle USPs
+    if (req.body.usps) {
+        content.usps = parseJSON(req.body.usps);
+    }
+
+    // Handle Legacy/Existing Sections
     if (req.body.collectiveIndex) {
         content.collectiveIndex = { ...content.collectiveIndex, ...parseJSON(req.body.collectiveIndex) };
     }
@@ -54,7 +86,6 @@ exports.updateContent = asyncHandler(async (req, res) => {
     if (req.body.flashSale) {
         const flashData = parseJSON(req.body.flashSale);
         content.flashSale = { ...content.flashSale, ...flashData };
-        // Ensure products array is set correctly (if sent as array of IDs)
         if (flashData.products) {
             content.flashSale.products = flashData.products;
         }
@@ -63,17 +94,29 @@ exports.updateContent = asyncHandler(async (req, res) => {
         content.footer = { ...content.footer, ...parseJSON(req.body.footer) };
     }
 
-    // Handle image uploads
-    // We expect fields: 'image' (collective index) or 'logo' (site logo)
-    // multer upload.fields([{ name: 'image', maxCount: 1 }, { name: 'logo', maxCount: 1 }])
-
+    // --- Image Uploads ---
     if (req.files) {
+        // 1. Hero Image (mapped from 'image' field)
         if (req.files['image']) {
             const result = await uploadSingleImage(req.files['image'][0], 'content');
-            content.collectiveIndex.image = result.url;
+            if (!content.hero) content.hero = {};
+            content.hero.image = result.url;
+
+            // Also update collectiveIndex for legacy compatibility if needed
+            if (content.collectiveIndex) content.collectiveIndex.image = result.url;
         }
+
+        // 2. Impact Image
+        if (req.files['impactImage']) {
+            const result = await uploadSingleImage(req.files['impactImage'][0], 'content');
+            if (!content.impact) content.impact = {};
+            content.impact.image = result.url;
+        }
+
+        // 3. Logo
         if (req.files['logo']) {
             const result = await uploadSingleImage(req.files['logo'][0], 'content');
+            if (!content.siteSettings) content.siteSettings = {};
             content.siteSettings.logoUrl = result.url;
         }
     }
