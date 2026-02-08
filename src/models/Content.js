@@ -12,7 +12,7 @@ const contentSchema = new mongoose.Schema({
         topBarText: { type: String, default: '100% Organic & Fairtrade | Free Shipping on Orders Over $100' },
         announcementEnabled: { type: Boolean, default: true }
     },
-    // Hero Section (New)
+    // Hero Section (Legacy/Fallback)
     hero: {
         title: { type: String, default: "Sleep in Nature's" },
         highlight: { type: String, default: "Embrace" },
@@ -21,6 +21,16 @@ const contentSchema = new mongoose.Schema({
         image: { type: String, default: "https://images.unsplash.com/photo-1595521624992-48a59d495e6d?q=80&w=2487&auto=format&fit=crop" },
         link: { type: String, default: "/products" }
     },
+    // Hero Slider (Dynamic)
+    heroSlides: [{
+        title: { type: String },
+        highlight: { type: String },
+        subtitle: { type: String },
+        description: { type: String },
+        buttonText: { type: String },
+        link: { type: String },
+        image: { type: String }
+    }],
     // Impact Section
     impact: {
         title: { type: String, default: "Change the World" },

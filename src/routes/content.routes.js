@@ -8,7 +8,7 @@ const { upload } = require('../services/fileUploadService');
 router.get('/:identifier', contentController.getContent);
 
 // Admin update
-// Using 'upload.fields' for multiple image handling.
-router.put('/:identifier', protect, authorize('admin'), upload.fields([{ name: 'image', maxCount: 1 }, { name: 'logo', maxCount: 1 }, { name: 'impactImage', maxCount: 1 }]), contentController.updateContent);
+// Using 'upload.any' for dynamic multiple image handling (slides, logo, impact, etc).
+router.put('/:identifier', protect, authorize('admin'), upload.any(), contentController.updateContent);
 
 module.exports = router;

@@ -48,16 +48,17 @@ exports.updateContent = asyncHandler(async (req, res) => {
         content.header = { ...content.header, ...headerData };
     }
 
-    // Handle Hero
-    // Note: If sent as individually appended "hero[title]" fields, standard parsing might leave them as body keys or nested object depending on config.
-    // We assume extended parsing or we handle `req.body.hero` if it's an object.
+    // Handle Hero (Legacy)
     if (req.body.hero) {
-        // If it's a string (JSON) or object
         const heroData = parseJSON(req.body.hero);
-        // If it's an object, merge. 
         if (typeof heroData === 'object') {
             content.hero = { ...content.hero, ...heroData };
         }
+    }
+
+    // Handle Hero Slides (Dynamic)
+    if (req.body.heroSlides) {
+        content.heroSlides = parseJSON(req.body.heroSlides);
     }
 
     // Handle Impact
@@ -96,9 +97,19 @@ exports.updateContent = asyncHandler(async (req, res) => {
 
     // --- Image Uploads ---
     if (req.files) {
+        // Normalize req.files to an object if it's an array (from upload.any())
+        const filesObj = {};
+        if (Array.isArray(req.files)) {
+            req.files.forEach(file => {
+                filesObj[file.fieldname] = [file];
+            });
+        } else {
+            Object.assign(filesObj, req.files);
+        }
+
         // 1. Hero Image (mapped from 'image' field)
-        if (req.files['image']) {
-            const result = await uploadSingleImage(req.files['image'][0], 'content');
+        if (filesObj['image']) {
+            const result = await uploadSingleImage(filesObj['image'][0], 'content');
             if (!content.hero) content.hero = {};
             content.hero.image = result.url;
 
@@ -107,18 +118,30 @@ exports.updateContent = asyncHandler(async (req, res) => {
         }
 
         // 2. Impact Image
-        if (req.files['impactImage']) {
-            const result = await uploadSingleImage(req.files['impactImage'][0], 'content');
+        if (filesObj['impactImage']) {
+            const result = await uploadSingleImage(filesObj['impactImage'][0], 'content');
             if (!content.impact) content.impact = {};
             content.impact.image = result.url;
         }
 
         // 3. Logo
-        if (req.files['logo']) {
-            const result = await uploadSingleImage(req.files['logo'][0], 'content');
+        if (filesObj['logo']) {
+            const result = await uploadSingleImage(filesObj['logo'][0], 'content');
             if (!content.siteSettings) content.siteSettings = {};
             content.siteSettings.logoUrl = result.url;
         }
+
+        // 4. Hero Slides Images (Handles slideImage0, slideImage1, etc.)
+        const slideUploads = Object.keys(filesObj)
+            .filter(f => f.startsWith('slideImage'))
+            .map(async (fieldName) => {
+                const index = parseInt(fieldName.replace('slideImage', ''));
+                if (!isNaN(index) && content.heroSlides && content.heroSlides[index]) {
+                    const result = await uploadSingleImage(filesObj[fieldName][0], 'content');
+                    content.heroSlides[index].image = result.url;
+                }
+            });
+        await Promise.all(slideUploads);
     }
 
     await content.save();
