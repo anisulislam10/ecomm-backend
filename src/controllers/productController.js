@@ -41,9 +41,15 @@ exports.getAllProducts = asyncHandler(async (req, res, next) => {
 
     let query = Product.find(JSON.parse(queryStr));
 
-    // Search
+    // Search (Improved for partial matches)
     if (req.query.search) {
-        query = query.find({ $text: { $search: req.query.search } });
+        const searchRegex = new RegExp(req.query.search, 'i');
+        query = query.find({
+            $or: [
+                { name: { $regex: searchRegex } },
+                { description: { $regex: searchRegex } }
+            ]
+        });
     }
 
     // Sorting
