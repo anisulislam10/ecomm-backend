@@ -1,10 +1,9 @@
 const Joi = require('joi');
 
 exports.registerSchema = Joi.object({
-    name: Joi.string().required().max(50),
+    name: Joi.string().trim().min(2).max(50).required(),
     email: Joi.string().email().required(),
-    password: Joi.string().required().min(6),
-    phone: Joi.string().required()
+    password: Joi.string().required().min(6)
 });
 
 exports.loginSchema = Joi.object({
@@ -17,6 +16,6 @@ exports.forgotPasswordSchema = Joi.object({
 });
 
 exports.resetPasswordSchema = Joi.object({
-    password: Joi.string().required().min(6),
-    confirmPassword: Joi.string().required().valid(Joi.ref('password'))
+    token: Joi.string().required(),
+    password: Joi.string().required().min(6)
 });

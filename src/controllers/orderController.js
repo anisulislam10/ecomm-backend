@@ -27,13 +27,17 @@ exports.createOrder = asyncHandler(async (req, res, next) => {
         return next(new ApiError(400, 'No order items'));
     }
 
-    // Update product stock
+    // Verify and Update product stock
     for (const item of items) {
         const product = await Product.findById(item.product);
-        if (product) {
-            product.stock -= item.quantity;
-            await product.save();
+        if (!product) {
+            return next(new ApiError(404, `Product not found: ${item.product}`));
         }
+        if (product.stock < item.quantity) {
+            return next(new ApiError(400, `Insufficient stock for product: ${product.name}. Available: ${product.stock}`));
+        }
+        product.stock -= item.quantity;
+        await product.save();
     }
 
     const order = await Order.create({
@@ -233,7 +237,7 @@ exports.updateOrderStatus = asyncHandler(async (req, res, next) => {
  */
 exports.getAllOrders = asyncHandler(async (req, res, next) => {
     const orders = await Order.find({})
-        .populate('user', 'name email')
+        .populate('user', 'name email phone')
         .populate('items.product')
         .sort('-createdAt');
 

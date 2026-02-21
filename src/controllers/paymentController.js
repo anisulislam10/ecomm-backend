@@ -1,5 +1,6 @@
 const Payment = require('../models/Payment');
 const Order = require('../models/Order');
+const GatewaySetting = require('../models/GatewaySetting');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/apiResponse');
@@ -124,4 +125,81 @@ exports.createRefund = asyncHandler(async (req, res, next) => {
     const refund = await paymentService.createRefund(paymentIntentId, amount);
 
     res.status(200).json(new ApiResponse(200, { refund }, messages.REFUND_PROCESSED));
+});
+
+/**
+ * @desc    Get all gateway settings
+ * @route   GET /api/payment/settings
+ * @access  Private/Admin
+ */
+exports.getGatewaySettings = asyncHandler(async (req, res, next) => {
+    const settings = await GatewaySetting.find();
+    res.status(200).json(new ApiResponse(200, settings, 'Gateway settings retrieved'));
+});
+
+/**
+ * @desc    Get active gateway settings (Public/Safe)
+ * @route   GET /api/payment/active
+ * @access  Private
+ */
+exports.getActiveGateways = asyncHandler(async (req, res, next) => {
+    const settings = await GatewaySetting.find({ isActive: true });
+
+    // Filter out sensitive keys before sending to client
+    const safeSettings = settings.map(s => ({
+        gateway: s.gateway,
+        mode: s.mode,
+        testPublishableKey: s.testPublishableKey,
+        livePublishableKey: s.livePublishableKey,
+        isActive: s.isActive
+    }));
+
+    res.status(200).json(new ApiResponse(200, safeSettings, 'Active gateways retrieved'));
+});
+
+/**
+ * @desc    Update or create gateway setting
+ * @route   POST /api/payment/settings
+ * @access  Private/Admin
+ */
+exports.updateGatewaySettings = asyncHandler(async (req, res, next) => {
+    const {
+        gateway,
+        mode,
+        testSecretKey,
+        testPublishableKey,
+        testWebhookSecret,
+        liveSecretKey,
+        livePublishableKey,
+        liveWebhookSecret,
+        isActive
+    } = req.body;
+
+    let setting = await GatewaySetting.findOne({ gateway });
+
+    if (setting) {
+        if (mode !== undefined) setting.mode = mode;
+        if (testSecretKey !== undefined) setting.testSecretKey = testSecretKey;
+        if (testPublishableKey !== undefined) setting.testPublishableKey = testPublishableKey;
+        if (testWebhookSecret !== undefined) setting.testWebhookSecret = testWebhookSecret;
+        if (liveSecretKey !== undefined) setting.liveSecretKey = liveSecretKey;
+        if (livePublishableKey !== undefined) setting.livePublishableKey = livePublishableKey;
+        if (liveWebhookSecret !== undefined) setting.liveWebhookSecret = liveWebhookSecret;
+        if (isActive !== undefined) setting.isActive = isActive;
+        await setting.save();
+    } else {
+        setting = await GatewaySetting.create({
+            gateway,
+            mode,
+            testSecretKey,
+            testPublishableKey,
+            testWebhookSecret,
+            liveSecretKey,
+            livePublishableKey,
+            liveWebhookSecret,
+            isActive
+        });
+    }
+
+    res.status(200).json(new ApiResponse(200, setting, 'Gateway settings updated'));
 });

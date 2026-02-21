@@ -5,9 +5,9 @@ const jwt = require('jsonwebtoken');
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Please provide a name'],
         trim: true,
-        maxlength: [50, 'Name cannot be more than 50 characters']
+        maxlength: [50, 'Name cannot be more than 50 characters'],
+        default: null
     },
     email: {
         type: String,
@@ -26,11 +26,11 @@ const userSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        required: [true, 'Please provide a phone number']
+        default: null
     },
     avatar: {
         type: String,
-        default: 'https://res.cloudinary.com/demo/image/upload/v1626082800/sample.jpg'
+        default: null
     },
     role: {
         type: String,
@@ -42,6 +42,7 @@ const userSchema = new mongoose.Schema({
         default: false
     },
     verificationToken: String,
+    verificationTokenExpire: Date,
     resetPasswordToken: String,
     resetPasswordExpire: Date,
     refreshToken: String,
