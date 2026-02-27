@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const Content = require('../models/Content');
 const mongoose = require('mongoose');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
@@ -64,8 +65,24 @@ exports.getAllProducts = asyncHandler(async (req, res, next) => {
     query = query.skip(skip).limit(limit);
 
     // Execute query
-    const products = await query.populate('category', 'name');
+    let products = await query.populate('category', 'name');
     const total = await Product.countDocuments(JSON.parse(queryStr));
+
+    // --- Flash Sale Logic for Listings ---
+    const homeContent = await Content.findOne({ identifier: 'home_page' });
+    if (homeContent && homeContent.flashSale && homeContent.flashSale.enabled) {
+        const featuredIds = homeContent.flashSale.products.map(id => id.toString());
+        const saleDiscount = homeContent.flashSale.discount;
+
+        products = products.map(p => {
+            if (featuredIds.includes(p._id.toString()) && (!p.discount || p.discount === 0)) {
+                const productObj = p.toObject();
+                productObj.discount = saleDiscount;
+                return productObj;
+            }
+            return p;
+        });
+    }
 
     res.status(200).json(
         new ApiResponse(200, {
@@ -100,6 +117,20 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 
     if (!product) {
         return next(new ApiError(404, messages.PRODUCT_NOT_FOUND));
+    }
+
+    // --- Flash Sale Logic ---
+    // If there's an active flash sale and the product is part of it, 
+    // we set the discount to the sale percentage if the product has no individual discount.
+    const homeContent = await Content.findOne({ identifier: 'home_page' });
+    if (homeContent && homeContent.flashSale && homeContent.flashSale.enabled) {
+        const isFeatured = homeContent.flashSale.products.some(id => id.toString() === product._id.toString());
+        if (isFeatured && (!product.discount || product.discount === 0)) {
+            // We don't save this to DB, just return it in the response
+            const productObj = product.toObject();
+            productObj.discount = homeContent.flashSale.discount;
+            return res.status(200).json(new ApiResponse(200, { product: productObj }));
+        }
     }
 
     res.status(200).json(new ApiResponse(200, { product }));

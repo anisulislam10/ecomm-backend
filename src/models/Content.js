@@ -57,6 +57,7 @@ const contentSchema = new mongoose.Schema({
         endTime: { type: Date },
         title: { type: String, default: 'Flash Artifacts' },
         subtitle: { type: String, default: 'Limited Availability' },
+        discount: { type: Number, default: 0 },
         products: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }]
     },
     footer: {
