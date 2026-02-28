@@ -43,6 +43,7 @@ exports.uploadSingleImage = async (file, folder = 'products') => {
             },
             (error, result) => {
                 if (error) {
+                    console.error('Cloudinary Upload Error:', error);
                     reject(new ApiError(500, 'Failed to upload image'));
                 } else {
                     resolve({

@@ -33,6 +33,10 @@ exports.updateContent = asyncHandler(async (req, res) => {
         content = new Content({ identifier });
     }
 
+    console.log('Update Content Identifier:', identifier);
+    console.log('Request Body Keys:', Object.keys(req.body));
+    console.log('Received Files:', req.files?.map(f => ({ fieldname: f.fieldname, originalname: f.originalname })));
+
     // Helper to safety parsing JSON
     const parseJSON = (field) => {
         if (typeof field === 'string') {
