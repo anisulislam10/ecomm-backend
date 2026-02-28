@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const Cart = require('../models/Cart');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/apiResponse');
@@ -50,6 +51,16 @@ exports.createOrder = asyncHandler(async (req, res, next) => {
         shippingPrice,
         totalPrice
     });
+
+    // Clear user's cart after successful order creation
+    try {
+        await Cart.findOneAndUpdate(
+            { user: req.user._id },
+            { $set: { items: [], totalPrice: 0 } }
+        );
+    } catch (error) {
+        console.error('Failed to clear cart after order creation:', error);
+    }
 
     // Send order confirmation email
     try {
