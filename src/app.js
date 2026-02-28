@@ -71,6 +71,7 @@ const adRoutes = require('./routes/ad.routes');
 const testimonialRoutes = require('./routes/testimonial.routes');
 const returnRoutes = require('./routes/return.routes');
 const paymentRoutes = require('./routes/payment.routes');
+const shippingRoutes = require('./routes/shipping.routes');
 
 // Routes
 console.log('Mounting API Routes...');
@@ -86,6 +87,7 @@ app.use('/api/ads', adRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/returns', returnRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/shipping', shippingRoutes);
 
 
 // Handle unhandled routes
