@@ -15,6 +15,15 @@ exports.getCart = asyncHandler(async (req, res, next) => {
 
     if (!cart) {
         cart = await Cart.create({ user: req.user._id, items: [] });
+    } else {
+        // Filter out items whose product no longer exists (null after populate)
+        const originalLength = cart.items.length;
+        cart.items = cart.items.filter(item => item.product !== null);
+
+        if (cart.items.length !== originalLength) {
+            cart.totalPrice = cart.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+            await cart.save();
+        }
     }
 
     res.status(200).json(new ApiResponse(200, { cart }));
