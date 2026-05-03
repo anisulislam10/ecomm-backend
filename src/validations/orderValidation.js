@@ -9,7 +9,7 @@ exports.createOrderSchema = Joi.object({
         })
     ).required(),
     shippingAddress: Joi.string().required(),
-    paymentMethod: Joi.string().valid('Stripe', 'COD').required(),
+    paymentMethod: Joi.string().valid('Stripe', 'PayPal', 'COD').required(),
     itemsPrice: Joi.number().required(),
     taxPrice: Joi.number().required(),
     shippingPrice: Joi.number().required(),

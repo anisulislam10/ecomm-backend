@@ -203,3 +203,24 @@ exports.updateGatewaySettings = asyncHandler(async (req, res, next) => {
 
     res.status(200).json(new ApiResponse(200, setting, 'Gateway settings updated'));
 });
+/**
+ * @desc    Create PayPal Order
+ * @route   POST /api/payment/create-paypal-order
+ * @access  Private
+ */
+exports.createPaypalOrder = asyncHandler(async (req, res, next) => {
+    const { amount } = req.body;
+    const paypalOrder = await paymentService.createPaypalOrder(amount);
+    res.status(201).json(new ApiResponse(201, { orderId: paypalOrder.id }, 'PayPal order created'));
+});
+
+/**
+ * @desc    Capture PayPal Order
+ * @route   POST /api/payment/capture-paypal-order
+ * @access  Private
+ */
+exports.capturePaypalOrder = asyncHandler(async (req, res, next) => {
+    const { orderId } = req.body;
+    const captureData = await paymentService.capturePaypalOrder(orderId);
+    res.status(200).json(new ApiResponse(200, captureData, 'PayPal payment captured'));
+});

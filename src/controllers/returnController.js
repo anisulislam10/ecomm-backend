@@ -149,28 +149,43 @@ exports.updateReturnStatus = asyncHandler(async (req, res, next) => {
     // Automated Refund Processing
     if (status === 'Refunded' && returnRequest.status !== 'Refunded') {
         const order = await Order.findById(returnRequest.order);
-        if (order && order.paymentMethod === 'Stripe' && order.paymentResult?.id) {
+        if (!order) {
+            return next(new ApiError(404, 'Order associated with return not found'));
+        }
+
+        const refundAmount = returnRequest.totalRefundAmount || order.totalPrice;
+
+        // --- Stripe Automated Refund ---
+        if (order.paymentMethod === 'Stripe' && order.paymentResult?.id) {
             try {
-                // Use totalRefundAmount from returnRequest for partial refund
-                const refundAmount = returnRequest.totalRefundAmount || order.totalPrice;
                 const refund = await paymentService.createRefund(order.paymentResult.id, refundAmount);
                 const refundMsg = ` | Integrated Stripe Refund processed: ${refund.id}`;
                 adminNotes = adminNotes ? adminNotes + refundMsg : 'Stripe Refund processed.' + refundMsg;
             } catch (refundErr) {
-                // Gracefully handle "already refunded" cases to ensure idempotency
                 const isAlreadyRefunded = refundErr.message && (
                     refundErr.message.includes('already been refunded') ||
                     refundErr.message.includes('greater than unrefunded amount')
                 );
 
                 if (isAlreadyRefunded) {
-                    console.log('Stripe Protocol Detail: Refund verified/depleted in Stripe, proceeding with status update.');
-                    const idempotencyMsg = ` | Refund verified/already partially processed in Stripe.`;
+                    const idempotencyMsg = ` | Stripe Refund already processed.`;
                     adminNotes = adminNotes ? adminNotes + idempotencyMsg : 'Refund verified in Stripe.' + idempotencyMsg;
                 } else {
-                    console.error('Automated Refund Protocol Failed:', refundErr.message);
-                    return next(new ApiError(500, `Protocol error: Status set to Refunded but Stripe automated refund failed: ${refundErr.message}`));
+                    return next(new ApiError(500, `Stripe automated refund failed: ${refundErr.message}`));
                 }
+            }
+        }
+        // --- PayPal Automated Refund ---
+        else if (order.paymentMethod === 'PayPal' && order.paymentResult?.id) {
+            try {
+                // For PayPal, the paymentResult.id stored during capture is the Capture ID required for refunding
+                const refund = await paymentService.refundPaypalOrder(order.paymentResult.id, refundAmount);
+                const refundMsg = ` | Integrated PayPal Refund processed: ${refund.id}`;
+                adminNotes = adminNotes ? adminNotes + refundMsg : 'PayPal Refund processed.' + refundMsg;
+            } catch (refundErr) {
+                // PayPal error messages for already refunded vary, but we catch generic errors
+                console.error('PayPal Refund Protocol Failed:', refundErr.message);
+                return next(new ApiError(500, `PayPal automated refund failed: ${refundErr.message}`));
             }
         }
     }

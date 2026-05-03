@@ -7,6 +7,8 @@ router.get('/active', protect, paymentController.getActiveGateways);
 router.post('/create-intent', protect, paymentController.createPaymentIntent);
 router.post('/confirm', protect, paymentController.confirmPayment);
 router.post('/webhook', express.raw({ type: 'application/json' }), paymentController.handleWebhook);
+router.post('/create-paypal-order', protect, paymentController.createPaypalOrder);
+router.post('/capture-paypal-order', protect, paymentController.capturePaypalOrder);
 router.post('/refund', protect, authorize('admin'), paymentController.createRefund);
 
 router.get('/settings', protect, authorize('admin'), paymentController.getGatewaySettings);

@@ -98,3 +98,135 @@ exports.handleWebhook = async (body, signature) => {
         throw new ApiError(400, `Webhook signature verification failed: ${error.message}`);
     }
 };
+
+/**
+ * @desc    Get PayPal Access Token
+ */
+const getPaypalAccessToken = async () => {
+    const setting = await GatewaySetting.findOne({ gateway: 'paypal', isActive: true });
+    if (!setting) {
+        throw new ApiError(400, 'PayPal gateway is not configured or active');
+    }
+
+    const clientId = setting.mode === 'live' ? setting.livePublishableKey : setting.testPublishableKey;
+    const clientSecret = setting.mode === 'live' ? setting.liveSecretKey : setting.testSecretKey;
+
+    if (!clientId || !clientSecret) {
+        throw new ApiError(400, `PayPal ${setting.mode} credentials are missing`);
+    }
+
+    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const baseUrl = setting.mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+
+    const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=client_credentials'
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+        console.error('PayPal Auth Error:', data);
+        throw new ApiError(response.status, data.message || 'PayPal Authentication failed');
+    }
+
+    return data.access_token;
+};
+
+/**
+ * @desc    Create PayPal Order
+ */
+exports.createPaypalOrder = async (amount, currency = 'USD') => {
+    const accessToken = await getPaypalAccessToken();
+    const setting = await GatewaySetting.findOne({ gateway: 'paypal' });
+    const baseUrl = setting.mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+
+    const response = await fetch(`${baseUrl}/v2/checkout/orders`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            intent: 'CAPTURE',
+            purchase_units: [
+                {
+                    amount: {
+                        currency_code: currency,
+                        value: amount.toFixed(2)
+                    }
+                }
+            ]
+        })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+        console.error('PayPal Order Creation Error:', data);
+        throw new ApiError(response.status, data.message || 'Failed to create PayPal order');
+    }
+
+    return data;
+};
+
+/**
+ * @desc    Capture PayPal Order
+ */
+exports.capturePaypalOrder = async (paypalOrderId) => {
+    const accessToken = await getPaypalAccessToken();
+    const setting = await GatewaySetting.findOne({ gateway: 'paypal' });
+    const baseUrl = setting.mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+
+    const response = await fetch(`${baseUrl}/v2/checkout/orders/${paypalOrderId}/capture`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+        console.error('PayPal Capture Error:', data);
+        throw new ApiError(response.status, data.message || 'Failed to capture PayPal order');
+    }
+
+    return data;
+};
+
+/**
+ * @desc    Refund PayPal Order
+ */
+exports.refundPaypalOrder = async (captureId, amount, currency = 'USD') => {
+    const accessToken = await getPaypalAccessToken();
+    const setting = await GatewaySetting.findOne({ gateway: 'paypal' });
+    const baseUrl = setting.mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+
+    const body = amount ? {
+        amount: {
+            value: amount.toFixed(2),
+            currency_code: currency
+        }
+    } : {};
+
+    const response = await fetch(`${baseUrl}/v2/payments/captures/${captureId}/refund`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+        console.error('PayPal Refund Error:', data);
+        throw new ApiError(response.status, data.message || 'Failed to process PayPal refund');
+    }
+
+    return data;
+};
+
