@@ -26,14 +26,16 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // Body parser
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(cookieParser());
 
 // Implement CORS
 const allowedOrigins = [
     process.env.CLIENT_URL || 'http://localhost:3000',
-    'http://localhost:4173', 'https://linen-bedding-frontend.vercel.app', 'http://192.168.1.17:3000'
+    'http://localhost:4173', 'https://linen-bedding-frontend.vercel.app', 'http://192.168.1.17:3000',
+    'https://avenlybyhuma.com',
+    'https://www.avenlybyhuma.com'
 ];
 
 const corsOptions = {
