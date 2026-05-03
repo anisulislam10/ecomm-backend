@@ -222,5 +222,12 @@ exports.createPaypalOrder = asyncHandler(async (req, res, next) => {
 exports.capturePaypalOrder = asyncHandler(async (req, res, next) => {
     const { orderId } = req.body;
     const captureData = await paymentService.capturePaypalOrder(orderId);
-    res.status(200).json(new ApiResponse(200, captureData, 'PayPal payment captured'));
+
+    // Extract Capture ID to ensure it is stored in order.paymentResult.id for future refunds
+    const captureId = captureData.purchase_units?.[0]?.payments?.captures?.[0]?.id;
+
+    res.status(200).json(new ApiResponse(200, {
+        ...captureData,
+        id: captureId || captureData.id
+    }, 'PayPal payment captured'));
 });
