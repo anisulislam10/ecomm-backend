@@ -198,9 +198,32 @@ exports.capturePaypalOrder = async (paypalOrderId) => {
 };
 
 /**
+ * @desc    Get PayPal Order Details
+ */
+const getPaypalOrderDetails = async (orderId) => {
+    const accessToken = await getPaypalAccessToken();
+    const setting = await GatewaySetting.findOne({ gateway: 'paypal' });
+    const baseUrl = setting.mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+
+    const response = await fetch(`${baseUrl}/v2/checkout/orders/${orderId}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+        throw new ApiError(response.status, data.message || 'Failed to fetch PayPal order details');
+    }
+    return data;
+};
+
+/**
  * @desc    Refund PayPal Order
  */
-exports.refundPaypalOrder = async (captureId, amount, currency = 'USD') => {
+exports.refundPaypalOrder = async (id, amount, currency = 'USD') => {
     const accessToken = await getPaypalAccessToken();
     const setting = await GatewaySetting.findOne({ gateway: 'paypal' });
     const baseUrl = setting.mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
@@ -212,16 +235,38 @@ exports.refundPaypalOrder = async (captureId, amount, currency = 'USD') => {
         }
     } : {};
 
-    const response = await fetch(`${baseUrl}/v2/payments/captures/${captureId}/refund`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-    });
+    const performRefund = async (captureId) => {
+        return await fetch(`${baseUrl}/v2/payments/captures/${captureId}/refund`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+    };
 
-    const data = await response.json();
+    // Initial attempt
+    let response = await performRefund(id);
+    let data = await response.json();
+
+    // Recovery logic for old orders (if ID is an Order ID instead of a Capture ID)
+    if (!response.ok && (response.status === 404 || data.name === 'RESOURCE_NOT_FOUND')) {
+        console.warn(`PayPal Refund: ID ${id} not found as Capture. Attempting recovery from Order details...`);
+        try {
+            const orderDetails = await getPaypalOrderDetails(id);
+            const recoveredCaptureId = orderDetails.purchase_units?.[0]?.payments?.captures?.[0]?.id;
+
+            if (recoveredCaptureId) {
+                console.info(`PayPal Refund Recovery: Success. Using Capture ID ${recoveredCaptureId}`);
+                response = await performRefund(recoveredCaptureId);
+                data = await response.json();
+            }
+        } catch (recoveryError) {
+            console.error('PayPal Refund Recovery Protocol Failed:', recoveryError.message);
+        }
+    }
+
     if (!response.ok) {
         console.error('PayPal Refund Error:', data);
         throw new ApiError(response.status, data.message || 'Failed to process PayPal refund');

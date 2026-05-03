@@ -226,9 +226,33 @@ exports.verifyEmail = asyncHandler(async (req, res, next) => {
     user.isVerified = true;
     user.verificationToken = undefined;
     user.verificationTokenExpire = undefined;
+
+    // Generate tokens for automatic login
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+    user.refreshToken = refreshToken;
+
     await user.save();
 
-    res.status(200).json(new ApiResponse(200, { email: user.email }, 'Email verified successfully! You can now log in.'));
+    res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                accessToken,
+                refreshToken,
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    avatar: user.avatar,
+                    phone: user.phone,
+                    isVerified: user.isVerified
+                }
+            },
+            'Email verified successfully! You are now logged in.'
+        )
+    );
 });
 
 /**
